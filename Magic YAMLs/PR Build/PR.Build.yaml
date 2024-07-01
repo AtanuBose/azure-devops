@@ -1,0 +1,22 @@
+name: $(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger: none
+pr:
+  branches:
+    include:
+      - '*'
+
+stages:
+- stage: Build_and_Test
+  displayName: Build & Test Stage
+
+  jobs:
+  - job: Build
+    displayName: Build and test application code
+    pool:
+      vmImage: '{vm image name}'
+
+    steps:
+        - checkout: self
+
+        - template: build-and-test.yaml
