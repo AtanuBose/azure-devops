@@ -1,0 +1,61 @@
+variables:
+  packageName: {Package Name}
+  BuildConfiguration: Release
+  majorVersion: 1
+  minorVersion: 0
+
+name: ${{variables.packageName}}.${{variables.majorVersion}}.${{variables.minorVersion}}$(Rev:.r)
+
+pr: none
+
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+
+- stage: Build_and_Test
+  displayName: Build & Test Stage
+  jobs:
+  - job: Build
+    displayName: Build and test application code
+    pool:
+      vmImage: '{vm image name}'
+    steps:
+      - template: build-and-test.yaml
+
+- stage: Pack_and_Publish
+  displayName: Pack & Publish Stage
+  jobs:
+  - job: Publish
+    displayName: Pack and Publish application binaries
+    pool:
+      vmImage: '{vm image name}'
+    steps:
+
+      - task: DotNetCoreCLI@2
+        displayName: Create Nuget package(s)
+        inputs:
+          command: pack
+          packagesToPack: '${{variables.projectName}}/*.csproj'
+          includesymbols: true
+          includesource: true
+          versioningScheme: byBuildNumber
+
+      - task: DotNetCoreCLI@2
+        displayName: Push Nuget package(s) to artifacts
+        inputs:
+          command: push
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+          nuGetFeedType: internal
+          publishVstsFeed: {link to Nuget Package feed}
+        continueOnError: false
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish binaries to drop folder
+        inputs:
+          PathtoPublish: $(Build.ArtifactStagingDirectory)
+          ArtifactName: drop
+          publishLocation: Container
+        continueOnError: true

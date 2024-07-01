@@ -1,0 +1,33 @@
+parameters:
+- name: includedProject
+  type: string
+  default: '**'
+
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: Restore NuGet packages
+    condition: succeeded()
+    inputs:
+      command: restore
+      projects: ${{parameters.includedProject}}/*.csproj
+      vstsFeed: '{link to Nuget Package feed}'
+      noCache: true
+      verbosityRestore: '-'
+
+  - task: DotNetCoreCLI@2
+    displayName: Build Project ${{parameters.includedProject}}
+    condition: succeeded()
+    inputs:
+      command: build
+      projects: ${{parameters.includedProject}}/*.csproj
+      arguments: '--no-restore --verbosity n --configuration Release'
+  
+  - task: DotNetCoreCLI@2
+    displayName: Run Tests ${{parameters.includedProject}}
+    condition: succeeded()
+    inputs:
+      command: test
+      projects: ${{parameters.includedProject}}_Tests/*.csproj
+      arguments: '--verbosity n --collect "Code coverage"'
+      publishTestResults: true
+      testRunTitle: 'Unit Tests'
